@@ -1,44 +1,27 @@
+from weasyprint import HTML
+import tempfile
+import os
+from jinja2 import Template
 import openai
-import pdfkit
-from jinja2 import Environment, FileSystemLoader
 
-# ⚡ Set your OpenAI API key
-openai.api_key = "YOUR_OPENAI_API_KEY"
+# ✅ Generate AI content for resume sections
+def generate_ai_content(prompt, api_key):
+    openai.api_key = api_key
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that creates professional resume text."},
+            {"role": "user", "content": prompt}
+        ],
+    )
+    return response.choices[0].message["content"].strip()
 
-# Generate AI Resume Summary
-def generate_ai_content(name, education, experience, skills):
-    prompt = f"""
-    Create a professional resume summary for:
-    Name: {name}
-    Education: {education}
-    Experience: {experience}
-    Skills: {skills}
-    """
+# ✅ Generate a PDF resume using WeasyPrint (no wkhtmltopdf needed)
+def generate_resume_pdf(html_content, output_path):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-        return response['choices'][0]['message']['content']
+        HTML(string=html_content).write_pdf(output_path)
+        return True
     except Exception as e:
-        return f"Error generating AI content: {e}"
+        print("PDF generation failed:", e)
+        return False
 
-# Generate PDF from HTML template
-def generate_resume_pdf(template_name, context):
-    try:
-        env = Environment(loader=FileSystemLoader('templates'))
-        template = env.get_template(f"{template_name}.html")
-        html_content = template.render(context)
-
-        # PDF file name
-        pdf_file = f"{context['name'].replace(' ', '_')}_Resume.pdf"
-
-        # Generate PDF (wkhtmltopdf must be installed)
-        pdfkit.from_string(html_content, pdf_file)
-
-        # Return PDF bytes for Streamlit download
-        with open(pdf_file, "rb") as f:
-            return f.read()
-    except Exception as e:
-        return None
