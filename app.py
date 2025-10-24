@@ -2,7 +2,6 @@ import streamlit as st
 from utils import generate_resume_pdf, generate_ai_content
 
 st.set_page_config(page_title="AI Resume Builder", layout="wide")
-
 st.title("📝 AI-Powered Resume Builder")
 
 # --- User Inputs ---
@@ -14,15 +13,16 @@ linkedin = st.text_input("LinkedIn URL")
 github = st.text_input("GitHub URL")
 
 st.header("Education")
-education = st.text_area("Enter your education details")
+education = st.text_area("Education details")
 
 st.header("Work Experience")
-experience = st.text_area("Enter your experience details")
+experience = st.text_area("Experience details")
 
 st.header("Skills")
-skills = st.text_area("Enter your skills (comma-separated)")
+skills = st.text_area("Skills (comma-separated)")
 
-st.header("AI Resume Suggestions")
+# --- AI Summary ---
+summary = ""
 if st.button("Generate AI Summary"):
     summary = generate_ai_content(name, education, experience, skills)
     st.text_area("AI Generated Summary", summary, height=150)
@@ -33,15 +33,19 @@ template_choice = st.selectbox("Template", ["template1", "template2"])
 
 # --- Generate PDF ---
 if st.button("Download Resume as PDF"):
-    pdf_file = generate_resume_pdf(
-        template_choice,
-        name, email, phone, linkedin, github,
-        education, experience, skills, summary
-    )
-    st.success("PDF Generated!")
-    st.download_button(
-        label="Download PDF",
-        data=pdf_file,
-        file_name=f"{name}_Resume.pdf",
-        mime="application/pdf"
-    )
+    context = {
+        "name": name, "email": email, "phone": phone,
+        "linkedin": linkedin, "github": github,
+        "education": education, "experience": experience,
+        "skills": skills, "summary": summary
+    }
+    pdf_bytes = generate_resume_pdf(template_choice, context)
+    if pdf_bytes:
+        st.download_button(
+            label="Download PDF",
+            data=pdf_bytes,
+            file_name=f"{name.replace(' ', '_')}_Resume.pdf",
+            mime="application/pdf"
+        )
+    else:
+        st.error("PDF generation failed. Make sure wkhtmltopdf is installed.")
